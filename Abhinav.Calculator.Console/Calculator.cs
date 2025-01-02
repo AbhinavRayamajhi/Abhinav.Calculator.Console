@@ -12,10 +12,10 @@
                     result = num1 + num2;
                     break;
                 case "s":
-                    result = num1 + num2;
+                    result = num1 - num2;
                     break;
                 case "m":
-                    result = num1 + num2;
+                    result = num1 * num2;
                     break;
                 case "d":
                     result = num1 / num2;
