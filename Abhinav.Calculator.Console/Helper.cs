@@ -34,6 +34,21 @@
             Console.WriteLine();
         }
 
+        public static string? ReturnHistoryAtIndex(int index)
+        {
+            if (history.Count == 0)
+            {
+                Console.WriteLine("No history to return.");
+                return null;
+            }
+            if (index < 0 || index >= history.Count)
+            {
+                Console.WriteLine("Invalid index.");
+                return null;
+            }
+            return history[index];
+        }
+
         public static void IncreaseNumOfTimesPlayed()
         {
             numOfTimesPlayed++;
@@ -62,17 +77,31 @@
 
             history.RemoveAt(index);
 
-            for (int i = index + 1; i < history.Count; i++) // Updating history with new index after deletion
+            for (int i = index; i < history.Count; i++) // Updating history with new index after deletion
             {
                 string[] split = history[i].Split('.');
+
                 int count = int.Parse(split[0]);
                 count--;
-                history[i] = $"{count}. {split[1]}";
+                split[0] = count.ToString();
+
+                history[i] = "";
+
+                foreach (string s in split)
+                {
+                    history[i] += s;
+                    if (Array.IndexOf(split, s) < split.Length - 1)
+                    {
+                        history[i] += ".";
+                    }
+                }
             }
 
-            Console.WriteLine("\nHistory Deleted. \n");
+            Console.Clear();
+            Console.WriteLine("History Deleted. \n");
 
             GameHistory();
         }
+
     }
 }

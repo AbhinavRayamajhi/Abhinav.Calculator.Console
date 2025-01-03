@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.Metrics;
+using System.Dynamic;
 
 namespace Calculator
 {
@@ -7,7 +8,7 @@ namespace Calculator
         static double num1 = 0;
         static double num2 = 0;
         static Dictionary<string, string> OperatorKey= new()
-        { {"a", "+"}, {"s", "-"}, {"m", "*"}, {"d", "/"}};
+        { {"a", "+"}, {"s", "-"}, {"m", "*"}, {"d", "/"}, {"p", "^" }, {"2", "Sqrt of"}, {"3", "Cube Root of" } };
 
         public static void ShowMenu()
         {
@@ -27,7 +28,8 @@ namespace Calculator
                 switch (userOption)
                 {
                     case "c":
-                        Calculate();
+                        userOption = GetOperator();
+                        ShowResult(userOption);
                         break;
 
                     case "h":
@@ -39,54 +41,66 @@ namespace Calculator
                         break;
 
                     default:
-                        Console.Write("That is an invalid option. Enter another option: ");
+                        Console.Write("That is an invalid option. Enter another option here: ");
                         userOption = Console.ReadLine()?.ToLower();
                         break;
                 }
             } while (userOption != "c" || userOption != "h" || userOption != "e");
         }
-        public static void Calculate()
+
+        public static string GetOperator()
         {
             Console.Clear();
-
-            Console.Write("Type a number, and then press Enter: ");
-            num1 = Helper.ValidateUserInput(Console.ReadLine());
-            Console.WriteLine();
-
-            Console.Write("Type another number, and then press Enter: ");
-            num2 = Helper.ValidateUserInput(Console.ReadLine());
-            Console.WriteLine();
 
             Console.WriteLine("Choose an option from the following list:");
             Console.WriteLine("\tA - Add");
             Console.WriteLine("\tS - Subtract");
             Console.WriteLine("\tM - Multiply");
             Console.WriteLine("\tD - Divide");
+            Console.WriteLine("\tP - Exponent / Power");
+            Console.WriteLine("\t2 - Square Root");
+            Console.WriteLine("\t3 - Cube Root");
             Console.Write("Your option? ");
 
             string? userOperation = Console.ReadLine()?.ToLower();
             Console.WriteLine();
 
-            while (userOperation != "a" && userOperation != "s" && userOperation != "m" && userOperation != "d")
+            // check for valid operator input
+            while (userOperation != "a" && userOperation != "s" && userOperation != "m" && userOperation != "d" && userOperation != "p" && userOperation != "2" && userOperation != "3") 
             {
                 Console.Write("That is an invalid option. Enter another operation: ");
                 userOperation = Console.ReadLine()?.ToLower();
             }
 
-            if (userOperation == "d")
-            {
-                while (num2 == 0)
-                {
-                    Console.WriteLine("Enter a non-zero divisor: ");
-                    num2 = Helper.ValidateUserInput(Console.ReadLine());
-                }
-            }
+            return userOperation;
+        }
 
-            double result = Calculator.DoOperation(num1, num2, userOperation);
+        public static void ShowResult(string userOperation, List<double>? input = null)
+        {
+            double result;
+            string entry;
+            if (input == null)
+            {
+                input = GetInputNumbers(userOperation);
+            }
+            switch(double.TryParse(userOperation, out double a))
+            {
+                case true:
+                    result = Calculator.OneDigitOperation(input[0], userOperation);
+
+                    entry = $"{OperatorKey[userOperation]} ({input[0]}) = {result}";
+                    break;
+
+                case false:
+                    result = Calculator.TwoDigitOperation(input[0], input[1], userOperation);
+
+                    entry = $"{input[0]} {OperatorKey[userOperation]} {input[1]} = {result}";
+                    break;
+            }
 
             Console.WriteLine();
 
-            string entry = $"{num1} {OperatorKey[userOperation]} {num2} = {result}";
+            input.Clear();
             Console.WriteLine(entry);
             Helper.AddGameHistory(entry);
             Helper.IncreaseNumOfTimesPlayed();
@@ -99,7 +113,49 @@ namespace Calculator
             }
             else
             {
-                Calculate();
+                string userOption = GetOperator();
+                ShowResult(userOption);
+            }
+        }
+
+        public static List<double> GetInputNumbers(string operation, double num1 = 0) // num1 is optional, the parameter is used if the user wants to use result from game history
+        {
+            double operationNum;
+            List<double> input = new();
+
+            if (num1 == 0)
+            {
+                Console.Write("Type first number and press Enter: ");
+                num1 = Helper.ValidateUserInput(Console.ReadLine());
+                input.Add(num1);
+            }
+            else
+            {
+                input.Add(num1);
+            }
+
+            if (double.TryParse(operation, out operationNum))
+            {
+                return input;
+            }
+            else
+            { 
+                Console.Write("\nType second number and press Enter: ");
+                num2 = Helper.ValidateUserInput(Console.ReadLine());
+
+                if (operation == "d")
+                {
+                    while (num2 == 0)
+                    {
+                        Console.WriteLine();
+                        Console.Write("Enter a non-zero divisor: ");
+                        num2 = Helper.ValidateUserInput(Console.ReadLine());
+                    }
+                }
+
+                input.Add(num2);
+
+                return input;
             }
         }
 
@@ -108,7 +164,12 @@ namespace Calculator
             Console.Clear();
 
             Helper.GameHistory();
-            Console.Write("Press D to delete game history, E to exit the game or any other key to return to menu: ");
+            Console.WriteLine("Choose an option from the following list:");
+            Console.WriteLine("\tD - Delete Histories");
+            Console.WriteLine("\tR - Reuse History for Calculation");
+            Console.WriteLine("\tE - Exit the game");
+            Console.WriteLine("\tAny other key to return to menu");
+            Console.Write("Your option? ");
 
             string? historyInput = Console.ReadLine()?.ToString();
 
@@ -119,12 +180,38 @@ namespace Calculator
             else if (historyInput?.ToLower() == "d")
             {
                 DeleteHistory();
-                ShowMenu();
             }
-            else
+            else if (historyInput?.ToLower() == "r")
             {
-                ShowMenu();
+                UseHistory();
             }
+            ShowMenu();
+        }
+
+        public static void UseHistory()
+        {
+            Console.Clear();
+            Helper.GameHistory();
+
+            Console.Write("\nEnter the index of the history you want to use: ");
+
+            int index = Convert.ToInt32(Console.ReadLine()) - 1;
+            string? historyEntry = Helper.ReturnHistoryAtIndex(index);
+
+            if (historyEntry == null) //Check if history is empty
+            {
+                Console.WriteLine("Returning to Menu. Press any key to continue...");
+                Console.ReadKey();
+                return;
+            }
+
+            string[] history = historyEntry.Split(" ");
+
+            //Get result from history and convert to double
+            double num1 = Convert.ToDouble(history[history.Length - 1]);
+
+            string userOption = GetOperator();
+            ShowResult(userOption, GetInputNumbers(userOption, num1));
         }
 
         public static void DeleteHistory()
